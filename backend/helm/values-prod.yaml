@@ -1,0 +1,32 @@
+replicaCount: 2
+image:
+  repository: 521495324055.dkr.ecr.eu-central-1.amazonaws.com/voyager-rannel/backend
+  tag: prod
+  pullPolicy: Always
+service:
+  port: 8080
+ingress:
+  className: alb
+  host: backend.prod-public.neoscriptv5-site.online
+  annotations:
+    alb.ingress.kubernetes.io/group.name: voyager-prod-public
+    alb.ingress.kubernetes.io/load-balancer-name: voyager-prod-public
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/certificate-arn: REPLACE_WITH_PROD_PUBLIC_CERT_ARN
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    alb.ingress.kubernetes.io/healthcheck-path: /api/ping
+  tls:
+    enabled: false
+    secretName: ""
+app:
+  clientUrl: https://www.neoscriptv5-site.online
+  envSecretName: voyager-backend-env
+  externalSecret:
+    enabled: true
+    secretStoreRef: aws-secretsmanager
+    refreshInterval: 1h
+    remoteSecretName: voyager-rannel/prod/backend
+nodeSelector:
+  workload: main

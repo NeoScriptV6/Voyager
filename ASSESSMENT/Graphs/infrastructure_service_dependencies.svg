@@ -1,0 +1,218 @@
+<svg width="100%" viewBox="0 0 680 760" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>Cloud Cartographer</title>
+  <desc>Infrastructure Network Port Map</desc>
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+
+    <style>
+      .title { font: 600 15px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #faf9f5; }
+      .subtitle { font: 400 12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #c2c0b6; }
+      .nodeText { font: 600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; text-anchor: middle; dominant-baseline: central; }
+      .smallText { font: 400 9px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; text-anchor: middle; dominant-baseline: central; }
+      .edgeText { font: 400 9px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #c2c0b6; text-anchor: middle; }
+      .legend { font: 400 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #c2c0b6; }
+      .edge { fill: none; stroke: #9c9a92; stroke-width: 1.45; marker-end: url(#arrow); }
+      .edgeThin { fill: none; stroke: #79776f; stroke-width: 1.1; marker-end: url(#arrow); }
+      .user { fill: #444441; stroke: #b4b2a9; }
+      .app { fill: #3c3489; stroke: #afa9ec; }
+      .backend { fill: #4c378f; stroke: #b8adf0; }
+      .data { fill: #085041; stroke: #5dcaa5; }
+      .monitor { fill: #633806; stroke: #ef9f27; }
+      .cicd { fill: #712b13; stroke: #f0997b; }
+      .cluster { fill: #0c447c; stroke: #85b7eb; }
+      .infra { fill: #444441; stroke: #b4b2a9; }
+      .admin { fill: #3f3f46; stroke: #a1a1aa; }
+    </style>
+  </defs>
+
+
+  <text x="340" y="24" text-anchor="middle" class="title">Cloud Cartographer</text>
+  <text x="340" y="42" text-anchor="middle" class="subtitle">Infrastructure Network Port Map</text>
+
+  <g>
+    <rect x="280" y="65" width="120" height="44" rx="8" class="user" stroke-width="0.8"/>
+    <text x="340" y="82" class="nodeText" fill="#d3d1c7">User browser</text>
+    <text x="340" y="98" class="smallText" fill="#b9b7ae">public client</text>
+  </g>
+
+  <g>
+    <rect x="250" y="145" width="180" height="48" rx="8" class="cluster" stroke-width="0.8"/>
+    <text x="340" y="162" class="nodeText" fill="#b5d4f4">Public LB / Ingress</text>
+    <text x="340" y="179" class="smallText" fill="#b5d4f4">443 HTTPS / 80 HTTP</text>
+  </g>
+
+  <g>
+    <rect x="270" y="225" width="140" height="44" rx="8" class="app" stroke-width="0.8"/>
+    <text x="340" y="242" class="nodeText" fill="#cecbf6">Frontend pods</text>
+    <text x="340" y="258" class="smallText" fill="#cecbf6">3000 HTTP</text>
+  </g>
+
+  <g>
+    <rect x="270" y="305" width="140" height="44" rx="8" class="backend" stroke-width="0.8"/>
+    <text x="340" y="322" class="nodeText" fill="#d8d2fa">Backend ingress</text>
+    <text x="340" y="338" class="smallText" fill="#d8d2fa">443 HTTPS</text>
+  </g>
+
+  <g>
+    <rect x="270" y="385" width="140" height="44" rx="8" class="backend" stroke-width="0.8"/>
+    <text x="340" y="402" class="nodeText" fill="#d8d2fa">Backend pods</text>
+    <text x="340" y="418" class="smallText" fill="#d8d2fa">8080 HTTP</text>
+  </g>
+
+  <g>
+    <rect x="260" y="465" width="160" height="44" rx="8" class="data" stroke-width="0.8"/>
+    <text x="340" y="482" class="nodeText" fill="#9fe1cb">PostgreSQL DB</text>
+    <text x="340" y="498" class="smallText" fill="#9fe1cb">5432 PostgreSQL/TCP</text>
+  </g>
+
+  <line x1="340" y1="109" x2="340" y2="143" class="edge"/>
+  <text x="386" y="132" class="edgeText">secure access</text>
+
+  <line x1="340" y1="193" x2="340" y2="223" class="edge"/>
+  <text x="389" y="212" class="edgeText">forward traffic</text>
+
+  <line x1="340" y1="269" x2="340" y2="303" class="edge"/>
+  <text x="390" y="292" class="edgeText">API calls</text>
+
+  <line x1="340" y1="349" x2="340" y2="383" class="edge"/>
+  <text x="395" y="372" class="edgeText">ingress routes</text>
+
+  <line x1="340" y1="429" x2="340" y2="463" class="edge"/>
+  <text x="395" y="452" class="edgeText">read/write data</text>
+
+  <g>
+    <rect x="35" y="225" width="150" height="44" rx="8" class="monitor" stroke-width="0.8"/>
+    <text x="110" y="242" class="nodeText" fill="#fac775">Prometheus</text>
+    <text x="110" y="258" class="smallText" fill="#fac775">scrapes metrics</text>
+  </g>
+
+  <g>
+    <rect x="35" y="305" width="150" height="44" rx="8" class="monitor" stroke-width="0.8"/>
+    <text x="110" y="322" class="nodeText" fill="#fac775">Metrics endpoints</text>
+    <text x="110" y="338" class="smallText" fill="#fac775">8080 / 9187 / 9100</text>
+  </g>
+
+  <g>
+    <rect x="35" y="385" width="150" height="44" rx="8" class="monitor" stroke-width="0.8"/>
+    <text x="110" y="402" class="nodeText" fill="#fac775">Grafana</text>
+    <text x="110" y="418" class="smallText" fill="#fac775">dashboards</text>
+  </g>
+
+  <g>
+    <rect x="35" y="465" width="150" height="44" rx="8" class="data" stroke-width="0.8"/>
+    <text x="110" y="482" class="nodeText" fill="#9fe1cb">Loki</text>
+    <text x="110" y="498" class="smallText" fill="#9fe1cb">3100 HTTP</text>
+  </g>
+
+  <g>
+    <rect x="35" y="545" width="150" height="44" rx="8" class="monitor" stroke-width="0.8"/>
+    <text x="110" y="562" class="nodeText" fill="#fac775">Promtail / Alloy</text>
+    <text x="110" y="578" class="smallText" fill="#fac775">pushes logs</text>
+  </g>
+
+  <path d="M185 247 C220 247 230 407 268 407" class="edgeThin"/>
+  <text x="217" y="304" class="edgeText">scrape backend</text>
+
+  <line x1="110" y1="269" x2="110" y2="303" class="edgeThin"/>
+  <text x="60" y="292" class="edgeText">HTTP</text>
+
+  <path d="M110 385 L110 352" class="edgeThin"/>
+  <text x="62" y="374" class="edgeText">query metrics</text>
+
+  <line x1="110" y1="429" x2="110" y2="463" class="edgeThin"/>
+  <text x="59" y="452" class="edgeText">3100</text>
+
+  <path d="M110 545 L110 511" class="edgeThin"/>
+  <text x="60" y="532" class="edgeText">3100</text>
+
+  <g>
+    <rect x="495" y="225" width="150" height="44" rx="8" class="cicd" stroke-width="0.8"/>
+    <text x="570" y="242" class="nodeText" fill="#f5c4b3">GitLab CI</text>
+    <text x="570" y="258" class="smallText" fill="#f5c4b3">443 HTTPS</text>
+  </g>
+
+  <g>
+    <rect x="495" y="305" width="150" height="44" rx="8" class="cicd" stroke-width="0.8"/>
+    <text x="570" y="322" class="nodeText" fill="#f5c4b3">ECR registry</text>
+    <text x="570" y="338" class="smallText" fill="#f5c4b3">push images</text>
+  </g>
+
+  <g>
+    <rect x="495" y="385" width="150" height="44" rx="8" class="cicd" stroke-width="0.8"/>
+    <text x="570" y="402" class="nodeText" fill="#f5c4b3">ArgoCD</text>
+    <text x="570" y="418" class="smallText" fill="#f5c4b3">sync / deploy</text>
+  </g>
+
+  <g>
+    <rect x="495" y="465" width="150" height="44" rx="8" class="infra" stroke-width="0.8"/>
+    <text x="570" y="482" class="nodeText" fill="#d3d1c7">Git repository</text>
+    <text x="570" y="498" class="smallText" fill="#d3d1c7">manifests / Helm</text>
+  </g>
+
+  <g>
+    <rect x="495" y="545" width="150" height="44" rx="8" class="cluster" stroke-width="0.8"/>
+    <text x="570" y="562" class="nodeText" fill="#b5d4f4">Kubernetes API</text>
+    <text x="570" y="578" class="smallText" fill="#b5d4f4">443 HTTPS</text>
+  </g>
+
+  <line x1="570" y1="269" x2="570" y2="303" class="edgeThin"/>
+  <text x="622" y="292" class="edgeText">push</text>
+
+  <path d="M570 269 C650 300 650 365 570 383" class="edgeThin"/>
+  <text x="633" y="337" class="edgeText">trigger</text>
+
+  <line x1="570" y1="429" x2="570" y2="463" class="edgeThin"/>
+  <text x="620" y="452" class="edgeText">pull</text>
+
+  <line x1="570" y1="509" x2="570" y2="543" class="edgeThin"/>
+  <text x="620" y="532" class="edgeText">apply</text>
+
+  <path d="M495 565 C455 545 438 505 420 487" class="edgeThin"/>
+  <text x="455" y="538" class="edgeText">cluster mgmt</text>
+
+  <g>
+    <rect x="250" y="575" width="180" height="44" rx="8" class="infra" stroke-width="0.8"/>
+    <text x="340" y="592" class="nodeText" fill="#d3d1c7">External Secrets</text>
+    <text x="340" y="608" class="smallText" fill="#d3d1c7">443 HTTPS</text>
+  </g>
+
+  <g>
+    <rect x="250" y="640" width="180" height="44" rx="8" class="infra" stroke-width="0.8"/>
+    <text x="340" y="657" class="nodeText" fill="#d3d1c7">AWS Secrets Manager</text>
+    <text x="340" y="673" class="smallText" fill="#d3d1c7">DB/JWT/app secrets</text>
+  </g>
+
+  <g>
+    <rect x="35" y="640" width="150" height="44" rx="8" class="infra" stroke-width="0.8"/>
+    <text x="110" y="657" class="nodeText" fill="#d3d1c7">External DNS</text>
+    <text x="110" y="673" class="smallText" fill="#d3d1c7">Route53 API / 443</text>
+  </g>
+
+  <g>
+    <rect x="495" y="640" width="150" height="44" rx="8" class="admin" stroke-width="0.8"/>
+    <text x="570" y="657" class="nodeText" fill="#d4d4d8">Dev / Admin</text>
+    <text x="570" y="673" class="smallText" fill="#d4d4d8">VPN / bastion / 443</text>
+  </g>
+
+  <path d="M340 509 L340 573" class="edgeThin"/>
+  <text x="403" y="548" class="edgeText">secrets injected</text>
+
+  <line x1="340" y1="619" x2="340" y2="638" class="edgeThin"/>
+  <text x="386" y="634" class="edgeText">fetch</text>
+
+  <path d="M185 662 C220 662 220 597 248 597" class="edgeThin"/>
+  <text x="214" y="635" class="edgeText">DNS records</text>
+
+  <path d="M570 640 L570 591" class="edgeThin"/>
+  <text x="620" y="621" class="edgeText">kubectl</text>
+
+  <rect x="45" y="720" width="10" height="10" rx="2" class="app"/><text x="62" y="729" class="legend">App</text>
+  <rect x="115" y="720" width="10" height="10" rx="2" class="data"/><text x="132" y="729" class="legend">Data/logs</text>
+  <rect x="220" y="720" width="10" height="10" rx="2" class="monitor"/><text x="237" y="729" class="legend">Observability</text>
+  <rect x="350" y="720" width="10" height="10" rx="2" class="cicd"/><text x="367" y="729" class="legend">CI/CD &amp; GitOps</text>
+  <rect x="490" y="720" width="10" height="10" rx="2" class="cluster"/><text x="507" y="729" class="legend">Cluster/API</text>
+  <rect x="590" y="720" width="10" height="10" rx="2" class="infra"/><text x="607" y="729" class="legend">Infrastructure</text>
+</svg>

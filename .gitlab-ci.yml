@@ -1,0 +1,141 @@
+stages:
+  - test
+  - build
+  - deploy_test
+  - deploy_prod
+  - rollback
+
+variables:
+  AWS_REGION: eu-central-1
+  AWS_ACCOUNT_ID: "521495324055"
+  AWS_PAGER: ""
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: "/certs"
+  ECR_REGISTRY: "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+  BACKEND_ECR_REPO: "voyager-rannel/backend"
+  FRONTEND_ECR_REPO: "voyager-rannel/frontend"
+  GITLAB_BOT_NAME: "voyager-ci"
+  GITLAB_BOT_EMAIL: "voyager-ci@example.com"
+
+workflow:
+  rules:
+    - if: $CI_COMMIT_BRANCH
+
+backend_test:
+  stage: test
+  image: golang:1.24-alpine
+  before_script:
+    - cd backend
+  script:
+    - go test ./...
+
+helm_lint:
+  stage: test
+  image: alpine/helm:3.17.3
+  script:
+    - helm lint backend/helm
+    - helm lint frontend/helm
+
+build_and_push_images:
+  stage: build
+  image: docker:27
+  services:
+    - docker:27-dind
+  before_script:
+    - apk add --no-cache python3 py3-pip git
+    - pip install --break-system-packages awscli
+    - aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+  script:
+    - docker build --pull -t "$ECR_REGISTRY/$BACKEND_ECR_REPO:$CI_COMMIT_SHORT_SHA" ./backend
+    - docker push "$ECR_REGISTRY/$BACKEND_ECR_REPO:$CI_COMMIT_SHORT_SHA"
+    - docker build --pull -t "$ECR_REGISTRY/$FRONTEND_ECR_REPO:$CI_COMMIT_SHORT_SHA" ./frontend
+    - docker push "$ECR_REGISTRY/$FRONTEND_ECR_REPO:$CI_COMMIT_SHORT_SHA"
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+deploy_test:
+  stage: deploy_test
+  image: alpine:3.21
+  needs:
+    - backend_test
+    - helm_lint
+    - build_and_push_images
+  before_script:
+    - apk add --no-cache git curl sed
+    - curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/download/v2.14.10/argocd-linux-amd64
+    - chmod +x /usr/local/bin/argocd
+    - git config user.name "$GITLAB_BOT_NAME"
+    - git config user.email "$GITLAB_BOT_EMAIL"
+  script:
+    - sed -i "s/^  tag: .*/  tag: ${CI_COMMIT_SHORT_SHA}/" backend/helm/values-test.yaml
+    - sed -i "s/^  tag: .*/  tag: ${CI_COMMIT_SHORT_SHA}/" frontend/helm/values-test.yaml
+    - |
+      if [ -n "$(git status --porcelain)" ]; then
+        git add backend/helm/values-test.yaml frontend/helm/values-test.yaml
+        git commit -m "Deploy test ${CI_COMMIT_SHORT_SHA} [skip ci]"
+        git remote set-url origin "https://${GITLAB_PUSH_USER}:${GITLAB_PUSH_TOKEN}@gitlab.com/rannelkood3/voyager.git"
+        git push origin HEAD:$CI_COMMIT_BRANCH
+      fi
+    - argocd login "$ARGOCD_TEST_SERVER" --grpc-web --insecure --auth-token "$ARGOCD_AUTH_TOKEN_TEST"
+    - argocd app get voyager-test-apps
+    - argocd app diff voyager-test-apps || true
+    - argocd app sync voyager-test-apps --grpc-web --prune --timeout 900
+    - argocd app wait voyager-test-apps --grpc-web --health --sync --timeout 900
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+deploy_prod:
+  stage: deploy_prod
+  image: alpine:3.21
+  needs:
+    - deploy_test
+  before_script:
+    - apk add --no-cache git curl sed
+    - curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/download/v2.14.10/argocd-linux-amd64
+    - chmod +x /usr/local/bin/argocd
+    - git config user.name "$GITLAB_BOT_NAME"
+    - git config user.email "$GITLAB_BOT_EMAIL"
+  script:
+    - sed -i "s/^  tag: .*/  tag: ${CI_COMMIT_SHORT_SHA}/" backend/helm/values-prod.yaml
+    - sed -i "s/^  tag: .*/  tag: ${CI_COMMIT_SHORT_SHA}/" frontend/helm/values-prod.yaml
+    - |
+      if [ -n "$(git status --porcelain)" ]; then
+        git add backend/helm/values-prod.yaml frontend/helm/values-prod.yaml
+        git commit -m "Deploy prod ${CI_COMMIT_SHORT_SHA} [skip ci]"
+        git remote set-url origin "https://${GITLAB_PUSH_USER}:${GITLAB_PUSH_TOKEN}@gitlab.com/rannelkood3/voyager.git"
+        git push origin HEAD:$CI_COMMIT_BRANCH
+      fi
+    - argocd login "$ARGOCD_PROD_SERVER" --grpc-web --insecure --auth-token "$ARGOCD_AUTH_TOKEN_PROD"
+    - argocd app get voyager-prod-apps
+    - argocd app diff voyager-prod-apps || true
+    - argocd app sync voyager-prod-apps --grpc-web --prune --timeout 900
+    - argocd app wait voyager-prod-apps --grpc-web --health --sync --timeout 900
+  when: manual
+  allow_failure: false
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+rollback_prod:
+  stage: rollback
+  image: alpine:3.21
+  before_script:
+    - apk add --no-cache git curl sed
+    - curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/download/v2.14.10/argocd-linux-amd64
+    - chmod +x /usr/local/bin/argocd
+    - git config user.name "$GITLAB_BOT_NAME"
+    - git config user.email "$GITLAB_BOT_EMAIL"
+  script:
+    - test -n "$ROLLBACK_TAG"
+    - sed -i "s/^  tag: .*/  tag: ${ROLLBACK_TAG}/" backend/helm/values-prod.yaml
+    - sed -i "s/^  tag: .*/  tag: ${ROLLBACK_TAG}/" frontend/helm/values-prod.yaml
+    - git add backend/helm/values-prod.yaml frontend/helm/values-prod.yaml
+    - git commit -m "Rollback prod to ${ROLLBACK_TAG} [skip ci]"
+    - git remote set-url origin "https://${GITLAB_PUSH_USER}:${GITLAB_PUSH_TOKEN}@gitlab.com/rannelkood3/voyager.git"
+    - git push origin HEAD:$CI_COMMIT_BRANCH
+    - argocd login "$ARGOCD_PROD_SERVER" --grpc-web --insecure --auth-token "$ARGOCD_AUTH_TOKEN_PROD"
+    - argocd app sync voyager-prod-apps --grpc-web --prune --timeout 900
+    - argocd app wait voyager-prod-apps --grpc-web --health --sync --timeout 900
+  when: manual
+  allow_failure: false
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH

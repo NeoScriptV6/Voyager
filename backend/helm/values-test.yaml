@@ -1,0 +1,33 @@
+replicaCount: 1
+image:
+  repository: 521495324055.dkr.ecr.eu-central-1.amazonaws.com/voyager-rannel/backend
+  tag: test
+  pullPolicy: Always
+service:
+  port: 8080
+ingress:
+  className: alb
+  host: backend.test-public.neoscriptv5-site.online
+  annotations:
+    alb.ingress.kubernetes.io/group.name: voyager-test-public
+    alb.ingress.kubernetes.io/load-balancer-name: voyager-test-public
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:eu-central-1:521495324055:certificate/7f4149f0-79b7-47c4-a7d9-718792ed8b27
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    alb.ingress.kubernetes.io/healthcheck-path: /api/ping
+  tls:
+    enabled: false
+    secretName: ""
+app:
+  clientUrl: https://frontend.test-public.neoscriptv5-site.online
+  envSecretName: voyager-backend-env
+  externalSecret:
+    enabled: true
+    secretStoreRef: aws-secretsmanager
+    refreshInterval: 1h
+    remoteSecretName: voyager-rannel/test/backend
+nodeSelector:
+  workload: main
+

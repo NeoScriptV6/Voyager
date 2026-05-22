@@ -1,0 +1,64 @@
+server:
+  extraArgs:
+    - --insecure
+  service:
+    type: ClusterIP
+  ingress:
+    enabled: true
+    ingressClassName: alb
+    hostname: argocd.test-public.neoscriptv5-site.online
+    annotations:
+      alb.ingress.kubernetes.io/scheme: internet-facing
+      alb.ingress.kubernetes.io/target-type: ip
+      alb.ingress.kubernetes.io/group.name: voyager-test-public
+      alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+      alb.ingress.kubernetes.io/backend-protocol: HTTP
+      alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:eu-central-1:521495324055:certificate/7f4149f0-79b7-47c4-a7d9-718792ed8b27
+      external-dns.alpha.kubernetes.io/hostname: argocd.test-public.neoscriptv5-site.online
+  nodeSelector:
+    workload: tools
+  tolerations:
+    - key: workload
+      operator: Equal
+      value: tools
+      effect: NoSchedule
+
+controller:
+  nodeSelector:
+    workload: tools
+  tolerations:
+    - key: workload
+      operator: Equal
+      value: tools
+      effect: NoSchedule
+
+repoServer:
+  nodeSelector:
+    workload: tools
+  tolerations:
+    - key: workload
+      operator: Equal
+      value: tools
+      effect: NoSchedule
+
+applicationSet:
+  nodeSelector:
+    workload: tools
+  tolerations:
+    - key: workload
+      operator: Equal
+      value: tools
+      effect: NoSchedule
+
+redis:
+  nodeSelector:
+    workload: tools
+  tolerations:
+    - key: workload
+      operator: Equal
+      value: tools
+      effect: NoSchedule
+
+dex:
+  enabled: false
+

@@ -1,0 +1,48 @@
+{{- range .Values.applications }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ .name }}
+  namespace: {{ $.Values.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "{{ default "0" .syncWave }}"
+spec:
+  project: {{ default $.Values.project .project }}
+  source:
+    {{- if .path }}
+    repoURL: {{ $.Values.repoURL }}
+    targetRevision: {{ $.Values.targetRevision }}
+    path: {{ .path }}
+    {{- else }}
+    repoURL: {{ .repoURL }}
+    chart: {{ .chart }}
+    targetRevision: {{ .targetRevision }}
+    {{- end }}
+    {{- if or .releaseName .valueFile .helmValues }}
+    helm:
+      {{- if .releaseName }}
+      releaseName: {{ .releaseName }}
+      {{- end }}
+      {{- if .valueFile }}
+      valueFiles:
+        - {{ .valueFile }}
+      {{- end }}
+      {{- if .helmValues }}
+      values: |
+{{ .helmValues | indent 8 }}
+      {{- end }}
+    {{- end }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: {{ .destinationNamespace }}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      {{- range .syncOptions }}
+      - {{ . }}
+      {{- end }}
+---
+{{- end }}

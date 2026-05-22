@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "voyager-backend.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "voyager-backend.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "voyager-backend.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "voyager-backend.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ default (include "voyager-backend.fullname" .) .Values.serviceAccount.name }}
+      nodeSelector:
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
+      containers:
+        - name: backend
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+          volumeMounts:
+            - name: env-file
+              mountPath: /.env
+              subPath: .env
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: env-file
+          secret:
+            secretName: {{ .Values.app.envSecretName }}

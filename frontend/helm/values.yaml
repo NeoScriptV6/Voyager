@@ -1,0 +1,37 @@
+replicaCount: 1
+
+image:
+  repository: 521495324055.dkr.ecr.eu-central-1.amazonaws.com/voyager-rannel/frontend
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 3000
+
+ingress:
+  enabled: true
+  className: alb
+  annotations: {}
+  host: frontend.test-public.neoscriptv5-site.online
+  tls:
+    enabled: false
+    secretName: ""
+
+config:
+  apiUrl: https://backend.test-public.neoscriptv5-site.online
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi
+
+nodeSelector:
+  workload: main
+
+tolerations: []
+
+affinity: {}

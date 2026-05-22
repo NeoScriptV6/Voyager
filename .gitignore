@@ -1,0 +1,17 @@
+.vscode/
+node_modules/
+build/
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+terraform.tfvars
+*.auto.tfvars
+gitlab_access_token.txt
+AWS_ADMIN.txt
+.aws/
+.env
+.env.*
+*.pem
+*.key
+Voyager.mp4

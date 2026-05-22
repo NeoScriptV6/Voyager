@@ -1,0 +1,6 @@
+apiVersion: v2
+name: voyager-prod-apps
+description: App-of-apps chart for Voyager prod environment
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

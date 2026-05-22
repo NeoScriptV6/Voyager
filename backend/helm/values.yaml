@@ -1,0 +1,48 @@
+replicaCount: 1
+
+image:
+  repository: 521495324055.dkr.ecr.eu-central-1.amazonaws.com/voyager-rannel/backend
+  tag: latest
+  pullPolicy: IfNotPresent
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: true
+  className: alb
+  annotations: {}
+  host: backend.test-public.neoscriptv5-site.online
+  tls:
+    enabled: false
+    secretName: ""
+
+app:
+  clientUrl: https://frontend.test-public.neoscriptv5-site.online
+  envSecretName: voyager-backend-env
+  externalSecret:
+    enabled: false
+    secretStoreRef: aws-secretsmanager
+    refreshInterval: 1h
+    remoteSecretName: voyager-rannel/test/backend
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+nodeSelector:
+  workload: main
+
+tolerations: []
+
+affinity: {}

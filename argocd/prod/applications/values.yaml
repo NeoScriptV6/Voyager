@@ -1,0 +1,397 @@
+namespace: argocd
+project: default
+repoURL: https://gitlab.com/rannelkood3/voyager.git
+targetRevision: main
+
+applications:
+  - name: voyager-prod-aws-load-balancer-controller
+    syncWave: "-20"
+    destinationNamespace: aws-load-balancer-controller
+    repoURL: https://aws.github.io/eks-charts
+    chart: aws-load-balancer-controller
+    targetRevision: 3.3.0
+    releaseName: aws-load-balancer-controller
+    helmValues: |
+      clusterName: voyager-prod
+      region: eu-central-1
+      serviceAccount:
+        create: true
+        name: aws-load-balancer-controller
+        annotations:
+          eks.amazonaws.com/role-arn: arn:aws:iam::521495324055:role/voyager-rannel-prod-aws-load-balancer-controller
+      nodeSelector:
+        workload: tools
+      tolerations:
+        - key: workload
+          operator: Equal
+          value: tools
+          effect: NoSchedule
+
+  - name: voyager-prod-external-secrets
+    syncWave: "-15"
+    destinationNamespace: external-secrets
+    syncOptions:
+      - ServerSideApply=true
+    repoURL: https://charts.external-secrets.io
+    chart: external-secrets
+    targetRevision: 2.4.1
+    releaseName: external-secrets
+    helmValues: |
+      installCRDs: true
+      serviceAccount:
+        create: true
+        name: external-secrets
+        annotations:
+          eks.amazonaws.com/role-arn: arn:aws:iam::521495324055:role/voyager-rannel-prod-external-secrets
+      nodeSelector:
+        workload: tools
+      tolerations:
+        - key: workload
+          operator: Equal
+          value: tools
+          effect: NoSchedule
+      webhook:
+        nodeSelector:
+          workload: tools
+        tolerations:
+          - key: workload
+            operator: Equal
+            value: tools
+            effect: NoSchedule
+      certController:
+        nodeSelector:
+          workload: tools
+        tolerations:
+          - key: workload
+            operator: Equal
+            value: tools
+            effect: NoSchedule
+
+  - name: voyager-prod-platform-config
+    syncWave: "-10"
+    destinationNamespace: external-secrets
+    path: argocd/prod/platform-config
+
+  - name: voyager-prod-external-dns
+    syncWave: "-5"
+    destinationNamespace: external-dns
+    repoURL: https://charts.bitnami.com/bitnami
+    chart: external-dns
+    targetRevision: 9.0.3
+    releaseName: external-dns
+    helmValues: |
+      global:
+        security:
+          allowInsecureImages: true
+      image:
+        registry: registry.k8s.io
+        repository: external-dns/external-dns
+        tag: v0.18.0
+      provider: aws
+      policy: sync
+      registry: txt
+      txtOwnerId: voyager-prod
+      sources:
+        - ingress
+      domainFilters:
+        - prod-public.neoscriptv5-site.online
+        - prod-private.neoscriptv5-site.online
+        - www.neoscriptv5-site.online
+      aws:
+        region: eu-central-1
+      serviceAccount:
+        create: true
+        name: external-dns
+        annotations:
+          eks.amazonaws.com/role-arn: arn:aws:iam::521495324055:role/voyager-rannel-prod-external-dns
+      nodeSelector:
+        workload: tools
+      tolerations:
+        - key: workload
+          operator: Equal
+          value: tools
+          effect: NoSchedule
+
+  - name: voyager-prod-loki
+    syncWave: "0"
+    destinationNamespace: monitoring
+    repoURL: https://grafana.github.io/helm-charts
+    chart: loki
+    targetRevision: 7.0.0
+    releaseName: loki
+    helmValues: |
+      deploymentMode: SingleBinary
+      loki:
+        auth_enabled: false
+        commonConfig:
+          replication_factor: 1
+        schemaConfig:
+          configs:
+            - from: "2024-01-01"
+              store: tsdb
+              object_store: s3
+              schema: v13
+              index:
+                prefix: loki_index_
+                period: 24h
+        storage:
+          type: s3
+          bucketNames:
+            chunks: voyager-rannel-prod-logs
+            ruler: voyager-rannel-prod-logs
+            admin: voyager-rannel-prod-logs
+          s3:
+            region: eu-central-1
+      serviceAccount:
+        create: true
+        name: loki
+        annotations:
+          eks.amazonaws.com/role-arn: arn:aws:iam::521495324055:role/voyager-rannel-prod-loki
+      singleBinary:
+        replicas: 1
+        persistence:
+          enabled: true
+          size: 20Gi
+          storageClass: gp2
+        nodeSelector:
+          workload: monitoring
+        tolerations:
+          - key: workload
+            operator: Equal
+            value: monitoring
+            effect: NoSchedule
+      gateway:
+        enabled: true
+      read:
+        replicas: 0
+      write:
+        replicas: 0
+      backend:
+        replicas: 0
+      chunksCache:
+        enabled: false
+      resultsCache:
+        enabled: false
+
+  - name: voyager-prod-monitoring
+    syncWave: "5"
+    destinationNamespace: monitoring
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    targetRevision: 85.0.1
+    releaseName: voyager-monitoring
+    helmValues: |
+      crds:
+        enabled: true
+      defaultRules:
+        create: true
+      prometheusOperator:
+        nodeSelector:
+          workload: monitoring
+        tolerations:
+          - key: workload
+            operator: Equal
+            value: monitoring
+            effect: NoSchedule
+        admissionWebhooks:
+          patch:
+            nodeSelector:
+              workload: monitoring
+            tolerations:
+              - key: workload
+                operator: Equal
+                value: monitoring
+                effect: NoSchedule
+      kubeStateMetrics:
+        nodeSelector:
+          workload: monitoring
+        tolerations:
+          - key: workload
+            operator: Equal
+            value: monitoring
+            effect: NoSchedule
+      alertmanager:
+        config:
+          global:
+            resolve_timeout: 5m
+          route:
+            group_by:
+              - alertname
+              - namespace
+            group_wait: 30s
+            group_interval: 5m
+            repeat_interval: 4h
+            receiver: discord
+          receivers:
+            - name: discord
+              webhook_configs:
+                - url: https://discord.com/api/webhooks/REPLACE_ME/REPLACE_ME
+                  send_resolved: true
+        alertmanagerSpec:
+          nodeSelector:
+            workload: monitoring
+          tolerations:
+            - key: workload
+              operator: Equal
+              value: monitoring
+              effect: NoSchedule
+      prometheus:
+        prometheusSpec:
+          retention: 30d
+          serviceMonitorSelector: {}
+          podMonitorSelector: {}
+          ruleSelector: {}
+          nodeSelector:
+            workload: monitoring
+          tolerations:
+            - key: workload
+              operator: Equal
+              value: monitoring
+              effect: NoSchedule
+          storageSpec:
+            volumeClaimTemplate:
+              spec:
+                storageClassName: gp2
+                accessModes:
+                  - ReadWriteOnce
+                resources:
+                  requests:
+                    storage: 50Gi
+      grafana:
+        persistence:
+          enabled: true
+          size: 10Gi
+          storageClassName: gp2
+        serviceAccount:
+          create: true
+          name: grafana
+          annotations:
+            eks.amazonaws.com/role-arn: arn:aws:iam::521495324055:role/voyager-rannel-prod-grafana
+        nodeSelector:
+          workload: monitoring
+        tolerations:
+          - key: workload
+            operator: Equal
+            value: monitoring
+            effect: NoSchedule
+        ingress:
+          enabled: true
+          ingressClassName: alb
+          annotations:
+            alb.ingress.kubernetes.io/group.name: voyager-prod-private
+            alb.ingress.kubernetes.io/load-balancer-name: voyager-prod-private
+            alb.ingress.kubernetes.io/scheme: internal
+            alb.ingress.kubernetes.io/target-type: ip
+            alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+            alb.ingress.kubernetes.io/certificate-arn: REPLACE_WITH_PROD_PRIVATE_CERT_ARN
+            alb.ingress.kubernetes.io/ssl-redirect: "443"
+            external-dns.alpha.kubernetes.io/hostname: grafana.prod-private.neoscriptv5-site.online
+          hosts:
+            - grafana.prod-private.neoscriptv5-site.online
+          path: /
+        sidecar:
+          dashboards:
+            enabled: true
+            searchNamespace: ALL
+          datasources:
+            enabled: true
+            defaultDatasourceEnabled: true
+            uid: prometheus
+        additionalDataSources:
+          - name: Loki
+            uid: loki
+            type: loki
+            access: proxy
+            url: http://loki-gateway.monitoring.svc.cluster.local
+            isDefault: false
+          - name: CloudWatch
+            uid: cloudwatch
+            type: cloudwatch
+            access: proxy
+            jsonData:
+              authType: default
+              defaultRegion: eu-central-1
+      additionalPrometheusRulesMap:
+        voyager:
+          groups:
+            - name: voyager-app
+              rules:
+                - alert: VoyagerBackendUnavailable
+                  expr: kube_deployment_status_replicas_available{namespace="sample-app",deployment="voyager-backend"} < 1
+                  for: 2m
+                  labels:
+                    severity: warning
+                  annotations:
+                    summary: Voyager backend is unavailable
+                    description: Backend has no available replicas in sample-app namespace.
+                - alert: VoyagerFrontendUnavailable
+                  expr: kube_deployment_status_replicas_available{namespace="sample-app",deployment="voyager-frontend"} < 1
+                  for: 2m
+                  labels:
+                    severity: warning
+                  annotations:
+                    summary: Voyager frontend is unavailable
+                    description: Frontend has no available replicas in sample-app namespace.
+
+  - name: voyager-prod-promtail
+    syncWave: "10"
+    destinationNamespace: monitoring
+    repoURL: https://grafana.github.io/helm-charts
+    chart: promtail
+    targetRevision: 6.17.1
+    releaseName: promtail
+    helmValues: |
+      daemonset:
+        enabled: true
+      deployment:
+        enabled: false
+      config:
+        clients:
+          - url: http://loki-gateway.monitoring.svc.cluster.local/loki/api/v1/push
+
+  - name: voyager-prod-postgres-exporter
+    syncWave: "10"
+    destinationNamespace: monitoring
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: prometheus-postgres-exporter
+    targetRevision: 8.0.0
+    releaseName: postgres-exporter
+    helmValues: |
+      config:
+        datasourceSecret:
+          name: postgres-exporter-dsn
+          key: DATA_SOURCE_NAME
+      serviceMonitor:
+        enabled: true
+      prometheusRule:
+        enabled: true
+        rules:
+          - alert: VoyagerPostgresUnavailable
+            expr: pg_up == 0
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: PostgreSQL exporter cannot reach the database
+              description: The postgres exporter has been reporting pg_up == 0 for two minutes.
+      nodeSelector:
+        workload: monitoring
+      tolerations:
+        - key: workload
+          operator: Equal
+          value: monitoring
+          effect: NoSchedule
+
+  - name: voyager-prod-backend
+    syncWave: "20"
+    destinationNamespace: sample-app
+    path: backend/helm
+    valueFile: values-prod.yaml
+    releaseName: voyager-backend
+
+  - name: voyager-prod-frontend
+    syncWave: "20"
+    destinationNamespace: sample-app
+    path: frontend/helm
+    valueFile: values-prod.yaml
+    releaseName: voyager-frontend
